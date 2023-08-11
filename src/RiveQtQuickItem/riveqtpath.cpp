@@ -3,6 +3,9 @@
 // SPDX-FileCopyrightText: 2023 basysKom GmbH
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
+
+//#define DEBUG_QT_TRIANGLE_STROKER
+
 #include <optional>
 
 #include <QVector2D>
@@ -10,6 +13,10 @@
 #include <QtMath>
 
 #include <private/qtriangulator_p.h>
+
+#ifdef DEBUG_QT_TRIANGLE_STROKER
+#include <private/qtriangulatingstroker_p.h>
+#endif
 
 #include "rqqplogging.h"
 #include "riveqtpath.h"
@@ -260,6 +267,42 @@ void RiveQtPath::updatePathSegmentsOutlineData()
 
 void RiveQtPath::updatePathOutlineVertices(const QPen &pen)
 {
+
+#ifdef DEBUG_QT_TRIANGLE_STROKER
+    const QVectorPath &vp = qtVectorPathForPath(m_qPainterPath);
+    const QRectF clip(0.0, 0.0, m_qPainterPath.boundingRect().width(), m_qPainterPath.boundingRect().height());
+
+    QTriangulatingStroker stroker;
+    stroker.process(vp, pen, clip, {});
+
+    qDebug() << "VERTEX COUNT" << stroker.vertexCount();
+    const int vertexCount = stroker.vertexCount() / 2;
+    const float *vsrc = stroker.vertices();
+
+    QVector<QVector2D> lineDataSegment;
+
+    // Triangle strip to just triangles
+    for (int kj = 0; kj <= vertexCount - 3; kj++) {
+        const float dx1 =  vsrc[kj * 2 + 0];
+        const float dy1 =  vsrc[kj * 2 + 1];
+        const float dx2 =  vsrc[kj * 2 + 2];
+        const float dy2 =  vsrc[kj * 2 + 3];
+        const float dx3 =  vsrc[kj * 2 + 4];
+        const float dy3 =  vsrc[kj * 2 + 5];
+        if (kj % 2) {
+            lineDataSegment.append(QVector2D(dx1, dy1));
+            lineDataSegment.append(QVector2D(dx2, dy2));
+            lineDataSegment.append(QVector2D(dx3, dy3));
+        } else {
+            lineDataSegment.append(QVector2D(dx1, dy1));
+            lineDataSegment.append(QVector2D(dx3, dy3));
+            lineDataSegment.append(QVector2D(dx2, dy2));
+        }
+    }
+
+
+    m_pathOutlineVertices.append(lineDataSegment);
+#else
     const qreal lineWidth = pen.widthF();
     const Qt::PenJoinStyle &joinType = pen.joinStyle();
     const Qt::PenCapStyle &capStyle = pen.capStyle();
@@ -458,6 +501,7 @@ void RiveQtPath::updatePathOutlineVertices(const QPen &pen)
 
         m_pathOutlineVertices.append(lineDataSegment);
     }
+#endif
 }
 
 void RiveQtPath::updatePathSegmentsData()
