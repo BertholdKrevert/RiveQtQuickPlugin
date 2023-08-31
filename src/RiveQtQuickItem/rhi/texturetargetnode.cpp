@@ -301,13 +301,13 @@ void TextureTargetNode::render(QRhiCommandBuffer *commandBuffer)
 
         if (m_clip) {
             commandBuffer->setGraphicsPipeline(clipPipeline);
-            commandBuffer->setStencilRef(1);
+            //commandBuffer->setStencilRef(1);
             commandBuffer->setViewport(QRhiViewport(0, 0, renderTargetSize.width(), renderTargetSize.height()));
             commandBuffer->setShaderResources(m_clippingResourceBindings);
             QRhiCommandBuffer::VertexInput clipVertexBindings[] = { { m_clippingVertexBuffer, 0 } };
             commandBuffer->setVertexInput(0, 1, clipVertexBindings);
             commandBuffer->draw(m_clippingData.size() / sizeof(QVector2D));
-            commandBuffer->setStencilRef(0);
+            //commandBuffer->setStencilRef(0);
         }
 
         commandBuffer->setGraphicsPipeline(drawPipeline);
@@ -323,9 +323,9 @@ void TextureTargetNode::render(QRhiCommandBuffer *commandBuffer)
         }
 
         if (m_clip) {
-            commandBuffer->setStencilRef(1);
+            commandBuffer->setStencilRef(m_clippingLayers);
         } else {
-            commandBuffer->setStencilRef(0);
+            //commandBuffer->setStencilRef(0);
         }
 
         if (m_qImageTexture && m_indicesBuffer && m_useTexture) {
@@ -774,12 +774,18 @@ void TextureTargetNode::updateClippingGeometry(const QVector<QVector<QVector2D>>
     m_clippingData.resize(vertexCount * sizeof(QVector2D));
 
     int offset = 0;
+    int m_clippingLayers = 0;
+    int s = 0;
     for (const auto &segment : qAsConst(clippingGeometry)) {
         if (segment.empty()) {
             continue;
         }
 
+        m_clippingLayers++;
+        s+=segment.count();
         memcpy(m_clippingData.data() + offset, segment.constData(), segment.count() * sizeof(QVector2D));
         offset += (segment.count() * sizeof(QVector2D));
     }
+   // qDebug() << "CLIPPING GEOMETRY SIZE IS" << m_clippingLayers << s;
+
 }

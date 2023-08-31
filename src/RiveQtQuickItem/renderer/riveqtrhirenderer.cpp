@@ -18,6 +18,14 @@
 #include "renderer/riveqtrhirenderer.h"
 #include "rhi/texturetargetnode.h"
 
+template <typename T>
+QVector<T> reversed( const QVector<T> & in ) {
+    QVector<T> result;
+    result.reserve( in.size() );
+    std::reverse_copy( in.begin(), in.end(), std::back_inserter( result ) );
+    return result;
+}
+
 RiveQtRhiRenderer::RiveQtRhiRenderer(QQuickWindow *window, RiveQSGRHIRenderNode *node)
     : rive::Renderer()
     , m_window(window)
@@ -37,6 +45,7 @@ void RiveQtRhiRenderer::save()
 {
     m_rhiRenderStack.push_back(m_rhiRenderStack.back());
     m_rhiRenderStack.back().stackNodes.clear();
+    m_currentClippingGeometryStack.push_back(m_currentClippingGeometry);
 }
 
 void RiveQtRhiRenderer::restore()
@@ -44,6 +53,8 @@ void RiveQtRhiRenderer::restore()
     assert(m_rhiRenderStack.size() > 1);
     m_rhiRenderStack.pop_back();
     m_rhiRenderStack.back().opacity = 1.0;
+    m_currentClippingGeometry = m_currentClippingGeometryStack.last();
+    m_currentClippingGeometryStack.pop_back();
 }
 
 void RiveQtRhiRenderer::transform(const rive::Mat2D &transform)
@@ -103,7 +114,7 @@ void RiveQtRhiRenderer::drawPath(rive::RenderPath *path, rive::RenderPaint *pain
     drawClipping->updateGeometry(m_rhiRenderStack.back().clippingGeometry, QMatrix4x4());
 #endif
 
-    node->updateClippingGeometry(m_rhiRenderStack.back().clippingGeometry);
+    node->updateClippingGeometry(m_currentClippingGeometry);
 
     node->updateGeometry(pathData, transformMatrix());
 
@@ -117,19 +128,18 @@ void RiveQtRhiRenderer::clipPath(rive::RenderPath *path)
     // -> I would guess that would be faster
     RiveQtPath *qtPath = static_cast<RiveQtPath *>(path);
     auto pathVertices = qtPath->toVertices();
+    auto firstPath = pathVertices.count() > 0 ? pathVertices.first() : QVector<QVector2D>();
 
-    for (auto &path : pathVertices) {
-        for (auto &point : path) {
-            QVector4D vec4(point, 0.0f, 1.0f);
-            vec4 = transformMatrix() * vec4;
-            point = vec4.toVector2D();
-        }
+    for (auto &point : firstPath) {
+        QVector4D vec4(point, 0.0f, 1.0f);
+        vec4 = transformMatrix() * vec4;
+        point = vec4.toVector2D();
     }
 
-    m_rhiRenderStack.back().clippingGeometry = pathVertices;
+    m_currentClippingGeometry.prepend(firstPath);
 
     for (TextureTargetNode *textureTargetNode : m_rhiRenderStack.back().stackNodes) {
-        textureTargetNode->updateClippingGeometry(m_rhiRenderStack.back().clippingGeometry);
+       textureTargetNode->updateClippingGeometry(m_currentClippingGeometry);
     }
 }
 

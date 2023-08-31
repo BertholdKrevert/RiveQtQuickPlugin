@@ -177,6 +177,8 @@ private:
     const QMatrix4x4 *m_projectionMatrix;
     QMatrix4x4 m_transform;
 
+    int m_clippingLayers { 0 };
+
     QRectF m_rect;
     QRhiGraphicsPipeline *createBlendPipeline(QRhi *rhi, QRhiRenderPassDescriptor *renderPass,
                                               QRhiShaderResourceBindings *blendResourceBindings);

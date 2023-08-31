@@ -688,7 +688,10 @@ QRhiGraphicsPipeline *RiveQSGRHIRenderNode::createClipPipeline(QRhi *rhi, QRhiRe
 
     // Configure stencil operations for writing stencil values
     QRhiGraphicsPipeline::StencilOpState stencilOpState = { QRhiGraphicsPipeline::Keep, QRhiGraphicsPipeline::Keep,
-                                                            QRhiGraphicsPipeline::Replace, QRhiGraphicsPipeline::Always };
+                                                            QRhiGraphicsPipeline::IncrementAndClamp, QRhiGraphicsPipeline::Always };
+
+    clipPipeLine->setDepthWrite(false);
+    clipPipeLine->setDepthTest(false);
     clipPipeLine->setStencilFront(stencilOpState);
     clipPipeLine->setStencilBack(stencilOpState);
     clipPipeLine->setStencilTest(true);
@@ -749,7 +752,7 @@ QRhiGraphicsPipeline *RiveQSGRHIRenderNode::createDrawPipeline(QRhi *rhi, bool s
 
     if (stencilBuffer) {
         QRhiGraphicsPipeline::StencilOpState stencilOpState = { QRhiGraphicsPipeline::Keep, QRhiGraphicsPipeline::Keep,
-                                                                QRhiGraphicsPipeline::Replace, QRhiGraphicsPipeline::Equal };
+                                                                QRhiGraphicsPipeline::Keep, QRhiGraphicsPipeline::Equal };
         drawPipeLine->setDepthTest(false);
         drawPipeLine->setDepthWrite(false);
         drawPipeLine->setStencilFront(stencilOpState);

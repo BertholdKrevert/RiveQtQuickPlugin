@@ -76,4 +76,8 @@ private:
     QRectF m_riveRect;
 
     RiveQSGRHIRenderNode *m_node;
+
+    QVector<QVector<QVector2D>> m_currentClippingGeometry;
+    QVector<QVector<QVector<QVector2D>>> m_currentClippingGeometryStack;
+
 };
